@@ -12,7 +12,7 @@ import caffe
 caffe.set_device(0)
 caffe.set_mode_gpu()
 
-def face_detection(imgList):
+def face_detection():
 	cap = cv2.VideoCapture(0)
 	img_count = 0
 	plt.ion()
@@ -226,4 +226,4 @@ def generateBoundingBox(featureMap, scale):
     return boundingBox
 
 if __name__ == "__main__":
-	face_detection("lfw.txt")
+	face_detection()
