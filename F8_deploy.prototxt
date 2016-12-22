@@ -2,8 +2,8 @@ name: "FLIPMODEL"
 input: "data"
 input_dim: 1
 input_dim: 3
-input_dim: 160
 input_dim: 120
+input_dim: 160
 layer {
   name: "conv1"
   type: "Convolution"

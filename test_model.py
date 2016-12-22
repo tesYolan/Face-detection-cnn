@@ -29,7 +29,7 @@ def face_detection():
 		transformer.set_transpose('data', (2, 0, 1))
 		transformer.set_raw_scale('data', 255)
 		transformer.set_channel_swap('data', (2,1,0))
-		net_full_conv.blobs['data'].reshape(50, 3, 160,120)
+		net_full_conv.blobs['data'].reshape(1, 3, 120,160)
 		transformed_image = transformer.preprocess('data',im)
 		net_full_conv.blobs['data'].data[...] = transformed_image
 		out = net_full_conv.forward()
