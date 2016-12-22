@@ -213,7 +213,7 @@ def nms_max(boxes, overlapThresh=0.3):
 
 def generateBoundingBox(featureMap, scale):
     boundingBox = []
-    stride = 1
+    stride = 2
     cellSize = 32
     # 227 x 227 cell, stride=32
     for (x, y), prob in np.ndenumerate(featureMap):
