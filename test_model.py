@@ -17,51 +17,92 @@ def face_detection():
 	img_count = 0
 	plt.ion()
 	plt.show()
+        scales = []
+        factor = 0.793700526
+        # img2 = cv2.imread(imgFile.strip())
+
+	min = 480
+	max = 640
+        delim = 2500 / max
+	if (delim == 1):
+		scales.append(1)
+	elif (delim > 1):
+		scales.append(delim)
+
+	min = min * factor
+	factor_count = 1
+	while (min >= 32):
+		scales.append(pow(factor, factor_count))
+		min = min * factor
+		factor_count += 1
+	total_boxes = []
+
+	print scales
+
 	while(True):
 		total_boxes = []
 		ret, frame = cap.read()
-		#cv2.resize(frame,(160,120))
-		cv2.imwrite('tmp.jpg',frame)
-		img = Image.open('tmp.jpg')
-		net_full_conv = caffe.Net('F8_deploy.prototxt','G3XT_B.caffemodel',caffe.TEST)
-		transformer = caffe.io.Transformer({'data': net_full_conv.blobs['data'].data.shape})
-		im = caffe.io.load_image("tmp.jpg")
-		transformer.set_transpose('data', (2, 0, 1))
-		transformer.set_raw_scale('data', 255)
-		transformer.set_channel_swap('data', (2,1,0))
-		net_full_conv.blobs['data'].reshape(1, 3, 120,160)
-		transformed_image = transformer.preprocess('data',im)
-		net_full_conv.blobs['data'].data[...] = transformed_image
-		out = net_full_conv.forward()
-				#plt.subplot(1, 3, 1)
-				#plt.imshow(transformer.deprocess('data', net_full_conv.blobs['data'].data[0]))
-				#plt.subplot(1,3,2)
-				#plt.imshow(out['fpool'][0,1])
-				#plt.subplot(1,3,3)
-				#plt.imshow(out['fpool'][0,0])
-				#plt.show()
-		boxes = generateBoundingBox(out['fpool'][0, 1], 0.25)
-				#print("11")
-		plt.subplot(1, 2, 1)
-		plt.imshow(transformer.deprocess('data', net_full_conv.blobs['data'].data[0]))
-		plt.subplot(1, 2, 2)
-		plt.imshow(out['fpool'][0,1])
-		plt.draw()
-		#plt.show(block=False)
-		plt.pause(0.000001)
-		print boxes
-		if (boxes):
-			total_boxes.extend(boxes)
+		for scale in [0.1,0.2,0.25,0.5]: 
+			frame_scaled = cv2.resize(frame,(0,0),fx=scale, fy=scale)
+			cv2.imwrite('tmp.jpg',frame_scaled)
+			#img = Image.open('tmp.jpg')
+			
+			prototxt = open('F8_deploy.prototxt', 'r')
+			new_line = ""
+			output = open('F8_deploy_scaled.prototxt','w')
+			height, width = frame_scaled.shape[:2]
+			print("height: " + str(height))
+			print("width: " + str(width))
+			for i, line in enumerate(prototxt):
+				if i == 4:
+					new_line += "input_dim: " + str(height) + "\n"
+				elif i == 5:
+					new_line += "input_dim: " + str(width) + "\n"
+				else:
+					new_line += line
+			output.write(new_line)
+			output.close()
+			prototxt.close()
+			net_full_conv = caffe.Net('F8_deploy_scaled.prototxt','G3XT_B.caffemodel',caffe.TEST)
+			transformer = caffe.io.Transformer({'data': net_full_conv.blobs['data'].data.shape})
+			transformer.set_transpose('data', (2, 0, 1))
+			transformer.set_raw_scale('data', 255)
+			transformer.set_channel_swap('data', (2,1,0))
+			#net_full_conv.blobs['data'].reshape(1, 3, 120,160)
+			im = caffe.io.load_image("tmp.jpg")
+			#transformed_image = transformer.preprocess('data',im)
 
-			# boxes_nms = np.array(total_boxes)
-			# true_boxes = nms(boxes_nms, overlapThresh=0.3)
-			# #display the nmx bounding box in  image.
-			# draw = ImageDraw.Draw(scale_img)
-			# for box in true_boxes:
-			#     draw.rectangle((box[0], box[1], box[2], box[3]) )
-			# scale_img.show()
+			#net_full_conv.blobs['data'].data[...] = transformed_image
+			out = net_full_conv.forward_all(data=np.asarray([transformer.preprocess('data', im)]))
+					#plt.subplot(1, 3, 1)
+					#plt.imshow(transformer.deprocess('data', net_full_conv.blobs['data'].data[0]))
+					#plt.subplot(1,3,2)
+					#plt.imshow(out['fpool'][0,1])
+					#plt.subplot(1,3,3)
+					#plt.imshow(out['fpool'][0,0])
+					#plt.show()
+			boxes = generateBoundingBox(out['fpool'][0, 1], scale)
+					#print("11")
+			#plt.subplot(1, 2, 1)
+			#plt.imshow(transformer.deprocess('data', net_full_conv.blobs['data'].data[0]))
+			#plt.subplot(1, 2, 2)
+			#plt.imshow(out['fpool'][0,1])
+			#plt.draw()
+			##plt.show(block=False)
+			#plt.pause(0.000001)
+			print boxes
+			if (boxes):
+				total_boxes.extend(boxes)
 
-			# nms
+				# boxes_nms = np.array(total_boxes)
+				# true_boxes = nms(boxes_nms, overlapThresh=0.3)
+				# #display the nmx bounding box in  image.
+				# draw = ImageDraw.Draw(scale_img)
+				# for box in true_boxes:
+				#     draw.rectangle((box[0], box[1], box[2], box[3]) )
+				# scale_img.show()
+
+				# nms
 		boxes_nms = np.array(total_boxes)
 		true_boxes1 = nms_max(boxes_nms, overlapThresh=0.3)
 		true_boxes = nms_average(np.array(true_boxes1), overlapThresh=0.07)
